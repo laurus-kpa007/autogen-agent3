@@ -12,4 +12,9 @@ MCP_SERVERS = [
         "command": "C:\\Users\\lauru\\PythonProjects\\AutoGen_MCP\\mcp-resource-monitor\\venv\\Scripts\\python.exe",
         "args": ["C:\\Users\\lauru\\PythonProjects\\AutoGen_MCP\\mcp-resource-monitor\\app\\main.py"]
     }
+    # {
+    #     "type": "stdio",
+    #     "command": "C:\\Users\\lauru\\PythonProjects\\AutoGen_MCP\\mcp-weather\\venv\\Scripts\\python.exe",
+    #     "args": ["C:\\Users\\lauru\\PythonProjects\\AutoGen_MCP\\mcp-weather\\server.py"]
+    # }
 ]

@@ -4,6 +4,17 @@ warnings.filterwarnings(
     message="^Resolved model mismatch:",
     category=UserWarning
 )
+import logging
+from autogen_core import TRACE_LOGGER_NAME, EVENT_LOGGER_NAME
+
+# 기본 로거 메시지는 경고 이상으로 설정
+logging.basicConfig(level=logging.WARNING)
+
+# Trace 로그 완전 비활성화
+logging.getLogger(TRACE_LOGGER_NAME).setLevel(logging.ERROR)
+
+# 구조화된 이벤트 로그 비활성화
+logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.ERROR)
 
 import sys
 
@@ -16,6 +27,8 @@ def main():
     if mode.strip() == "1":
         import asyncio
         from orchestrator.agent_builder import create_orchestrator_agent
+        from autogen_agentchat.ui import Console
+        from autogen_agentchat.agents import AssistantAgent
 
         async def run_cli():
             agent = await create_orchestrator_agent()
@@ -24,10 +37,11 @@ def main():
                 query = input("👤: ")
                 if query.lower() in ("exit", "quit"):
                     break
-                result = await agent.run(task=query)
-                answer = result.messages[-1].content
-                print("🤖:", answer)
-
+                # result = await agent.run(task=query)
+                # answer = result.messages[-1].content
+                # print("🤖:", answer)
+                await Console(agent.run_stream(task=query), output_stats=False)
+                print()
         asyncio.run(run_cli())
 
     elif mode.strip() == "2":

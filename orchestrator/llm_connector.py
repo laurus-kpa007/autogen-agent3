@@ -1,4 +1,5 @@
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_core.models import ModelInfo
 from orchestrator.config import LLM_CONFIG
 
 def get_llm_client():
@@ -6,5 +7,12 @@ def get_llm_client():
         model=LLM_CONFIG["model"],
         base_url=LLM_CONFIG["base_url"],
         api_key=LLM_CONFIG["api_key"],
-#        model_info={"family": "unknown", "function_calling": True, "vision": False}
+        model_info=ModelInfo(
+            vision=False,
+            function_calling=True,
+            json_output=False,
+            family="openai",
+            structured_output=False
+        ),
+        parallel_tool_calls=True  # ✅ 여기서 설정
     )
