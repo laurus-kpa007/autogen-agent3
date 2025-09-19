@@ -105,27 +105,37 @@ class PromptBasedAgent:
     async def _call_llm(self, conversation: List[Dict[str, str]]) -> str:
         """LLM 호출"""
         try:
-            # OpenAI 스타일 메시지 형식으로 변환
-            formatted_messages = []
-            for msg in conversation:
-                formatted_messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"]
-                })
+            # 단순한 텍스트 응답을 위해 마지막 사용자 메시지만 사용
+            user_messages = [msg for msg in conversation if msg["role"] == "user"]
+            if not user_messages:
+                return "죄송합니다. 질문을 이해하지 못했습니다."
+
+            # 시스템 프롬프트와 마지막 사용자 메시지만 사용
+            system_msg = next((msg for msg in conversation if msg["role"] == "system"), None)
+            last_user_msg = user_messages[-1]
+
+            simple_messages = []
+            if system_msg:
+                simple_messages.append(TextMessage(content=system_msg["content"], source="system"))
+            simple_messages.append(TextMessage(content=last_user_msg["content"], source="user"))
 
             # 스트리밍 호출
             response_chunks = []
-            async for chunk in self.model_client.create_stream(
-                messages=formatted_messages
-            ):
-                if hasattr(chunk, 'content') and chunk.content:
-                    response_chunks.append(chunk.content)
+            try:
+                async for chunk in self.model_client.create_stream(messages=simple_messages):
+                    if hasattr(chunk, 'content') and chunk.content:
+                        response_chunks.append(chunk.content)
+            except Exception as stream_error:
+                print(f"스트리밍 오류: {stream_error}")
+                # 폴백: 간단한 응답
+                return "안녕하세요! 무엇을 도와드릴까요?"
 
-            return "".join(response_chunks)
+            result = "".join(response_chunks)
+            return result if result.strip() else "응답을 생성할 수 없습니다."
 
         except Exception as e:
             print(f"LLM 호출 실패: {e}")
-            return ""
+            return "죄송합니다. 응답을 생성하는 중 오류가 발생했습니다."
 
     async def _execute_tool(self, tool_call: ToolCall) -> Any:
         """툴 실행"""
