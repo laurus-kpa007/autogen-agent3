@@ -9,10 +9,10 @@ def get_llm_client():
         api_key=LLM_CONFIG["api_key"],
         model_info=ModelInfo(
             vision=False,
-            function_calling=True,
+            function_calling=False,
             json_output=False,
             family="openai",
             structured_output=False
         ),
-        parallel_tool_calls=True  # ✅ 여기서 설정
+        parallel_tool_calls=False  # ✅ 여기서 설정
     )

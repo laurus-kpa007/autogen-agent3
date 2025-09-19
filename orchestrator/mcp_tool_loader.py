@@ -6,7 +6,11 @@ async def load_mcp_tools():
     tools = []
     for conf in MCP_SERVERS:
         if conf["type"] == "stdio":
-            params = StdioServerParams(command=conf["command"], args=conf.get("args", []))
+            params = StdioServerParams(
+                command=conf["command"], 
+                args=conf.get("args", []),
+                env=conf.get("env", {}),
+            )
         elif conf["type"] == "sse":
             params = SseServerParams(url=conf["url"], headers=conf.get("headers", {}))
         else:
