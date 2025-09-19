@@ -62,13 +62,19 @@ class ToolCallParser:
             if hasattr(tool, 'input_schema') and tool.input_schema:
                 schema = tool.input_schema
                 if isinstance(schema, dict) and 'properties' in schema:
-                    params = []
-                    for param_name, param_info in schema['properties'].items():
-                        param_type = param_info.get('type', 'any')
-                        param_desc = param_info.get('description', '')
-                        params.append(f"{param_name}({param_type}): {param_desc}")
-                    if params:
+                    if schema['properties']:  # 매개변수가 있는 경우
+                        params = []
+                        for param_name, param_info in schema['properties'].items():
+                            param_type = param_info.get('type', 'any')
+                            param_desc = param_info.get('description', '')
+                            params.append(f"{param_name}({param_type}): {param_desc}")
                         desc += f"\n  매개변수: {', '.join(params)}"
+                    else:  # 매개변수가 없는 경우
+                        desc += "\n  매개변수: 없음"
+                else:
+                    desc += "\n  매개변수: 없음"
+            else:
+                desc += "\n  매개변수: 없음"
 
             tool_descriptions.append(desc)
 
@@ -82,13 +88,17 @@ class ToolCallParser:
 도구 호출 형식:
 <tool_call>
 <name>도구명</name>
-<arguments>{{"param": "value"}}</arguments>
+<arguments>{{}}</arguments>
 </tool_call>
 
+예시:
+- CPU 사용률 확인: <tool_call><name>cpu_usage</name><arguments>{{}}</arguments></tool_call>
+- 메모리 사용률 확인: <tool_call><name>memory_usage</name><arguments>{{}}</arguments></tool_call>
+
 규칙:
-1. 도구가 필요한 경우에만 호출하세요
-2. 정확한 JSON 형식의 인수를 사용하세요
-3. 도구 호출 후 결과를 바탕으로 최종 답변을 제공하세요
+1. 사용자가 시스템 정보를 요청하면 적절한 도구를 사용하세요
+2. 매개변수가 없는 도구는 arguments를 빈 객체 {{}}로 설정하세요
+3. 도구 호출 후 결과를 바탕으로 사용자 친화적인 답변을 제공하세요
 4. 답변은 항상 질문과 동일한 언어로 하십시오
 5. 도구 호출이 불필요한 경우 직접 답변하세요"""
 
