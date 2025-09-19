@@ -1,9 +1,14 @@
 import asyncio
-from autogen_agentchat.agents import AssistantAgent
 from orchestrator.llm_connector import get_llm_client
 from orchestrator.mcp_tool_loader import load_mcp_tools
+from orchestrator.agent_factory import AgentFactory
 
 async def create_orchestrator_agent():
+    """
+    LLM 특성에 따라 적절한 에이전트를 생성
+    - Function calling 지원: AssistantAgent 사용
+    - Function calling 미지원: PromptBasedAgent 사용
+    """
     llm_client = get_llm_client()
     tools = await load_mcp_tools()
 
@@ -13,13 +18,19 @@ async def create_orchestrator_agent():
         "답변은 항상 질문과 동일한 언어로 하십시오."
     )
 
-    return AssistantAgent(
-        name="orchestrator",
+    # AgentFactory를 사용해서 적절한 에이전트 생성
+    agent = await AgentFactory.create_agent(
         model_client=llm_client,
         tools=tools,
         system_message=system_prompt,
+        max_tool_iterations=5,
+        name="orchestrator",
         reflect_on_tool_use=True,
-        # parallel_tool_calls=True,     # 동시에 여러 툴 호출 허용
-        model_client_stream=True,
-        max_tool_iterations=5,        # 최대 2회 툴 호출 루프 실행
+        model_client_stream=True
     )
+
+    # 에이전트 정보 출력 (디버깅용)
+    agent_info = AgentFactory.get_agent_type_info(agent)
+    print(f"Agent created: {agent_info}")
+
+    return agent
