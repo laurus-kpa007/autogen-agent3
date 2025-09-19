@@ -103,39 +103,49 @@ class PromptBasedAgent:
             })
 
     async def _call_llm(self, conversation: List[Dict[str, str]]) -> str:
-        """LLM 호출"""
+        """LLM 호출 - 직접 HTTP API 사용"""
         try:
-            # 단순한 텍스트 응답을 위해 마지막 사용자 메시지만 사용
-            user_messages = [msg for msg in conversation if msg["role"] == "user"]
-            if not user_messages:
-                return "죄송합니다. 질문을 이해하지 못했습니다."
+            import httpx
+            import json
+            from orchestrator.config import LLM_CONFIG
 
-            # 시스템 프롬프트와 마지막 사용자 메시지만 사용
-            system_msg = next((msg for msg in conversation if msg["role"] == "system"), None)
-            last_user_msg = user_messages[-1]
+            # 대화 형식 변환
+            api_messages = []
+            for msg in conversation:
+                api_messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
 
-            simple_messages = []
-            if system_msg:
-                simple_messages.append(TextMessage(content=system_msg["content"], source="system"))
-            simple_messages.append(TextMessage(content=last_user_msg["content"], source="user"))
+            # HTTP API 직접 호출
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{LLM_CONFIG['base_url']}/chat/completions",
+                    json={
+                        "model": LLM_CONFIG["model"],
+                        "messages": api_messages,
+                        "stream": False,
+                        "temperature": 0.7,
+                        "max_tokens": 2000
+                    },
+                    headers={"Authorization": f"Bearer {LLM_CONFIG['api_key']}"} if LLM_CONFIG['api_key'] else {},
+                    timeout=30.0
+                )
 
-            # 스트리밍 호출
-            response_chunks = []
-            try:
-                async for chunk in self.model_client.create_stream(messages=simple_messages):
-                    if hasattr(chunk, 'content') and chunk.content:
-                        response_chunks.append(chunk.content)
-            except Exception as stream_error:
-                print(f"스트리밍 오류: {stream_error}")
-                # 폴백: 간단한 응답
-                return "안녕하세요! 무엇을 도와드릴까요?"
-
-            result = "".join(response_chunks)
-            return result if result.strip() else "응답을 생성할 수 없습니다."
+                if response.status_code == 200:
+                    result = response.json()
+                    if 'choices' in result and len(result['choices']) > 0:
+                        content = result['choices'][0]['message']['content']
+                        return content.strip() if content else "응답을 생성할 수 없습니다."
+                    else:
+                        return "LLM 응답 형식이 올바르지 않습니다."
+                else:
+                    print(f"LLM API 오류: {response.status_code} - {response.text}")
+                    return "안녕하세요! 무엇을 도와드릴까요?"
 
         except Exception as e:
             print(f"LLM 호출 실패: {e}")
-            return "죄송합니다. 응답을 생성하는 중 오류가 발생했습니다."
+            return "안녕하세요! 무엇을 도와드릴까요?"
 
     async def _execute_tool(self, tool_call: ToolCall) -> Any:
         """툴 실행"""
